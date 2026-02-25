@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WordleSolver.Application/WordleSolver.Application.csproj" />
+    <Project Path="src/WordleSolver.Data/WordleSolver.Data.csproj" />
+    <Project Path="src/WordleSolver.Engine/WordleSolver.Engine.csproj" />
+  </Folder>
+</Solution>

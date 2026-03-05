@@ -8,3 +8,19 @@ The original approach was inspired by
 by [Jon Gjengset](https://github.com/jonhoo).
 
 > His implementation can be found here: https://github.com/jonhoo/roget
+
+## Installation:
+
+- Clone this repo.
+- Run:
+
+```sh
+$ dotnet pack -c Release
+$ dotnet tool install --global WordleSolver --add-source ./src/WordleSolver.Application/bin/Release/
+```
+
+- You can now run with:
+
+```sh
+$ Wordle-Solver
+```

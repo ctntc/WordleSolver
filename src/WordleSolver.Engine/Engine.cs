@@ -2,6 +2,13 @@ using WordleSolver.Data;
 
 namespace WordleSolver.Engine;
 
+/// <summary>
+///     Wordle solver engine using entropy-based scoring with sigmoid frequency weighting.<br />
+///     <br />The solver works by:
+///     <br />1. Maintaining a list of remaining possible answers
+///     <br />2. For each guess, filtering answers based on the feedback pattern
+///     <br />3. Selecting the next guess by maximizing a blended score of entropy and word frequency
+/// </summary>
 public sealed class Engine
 {
     private readonly List<AllowedWord> _allWords;
@@ -9,9 +16,9 @@ public sealed class Engine
     private readonly Dictionary<string, double> _frequencyMap;
     private readonly PatternCache _patternCache;
     private readonly Scorer _scorer;
+    private string _bestCandidate;
 
     private string _currentGuess;
-    private string _bestCandidate;
 
     public Engine(string opener, bool useSigmoid)
     {
@@ -22,15 +29,30 @@ public sealed class Engine
 
         _frequencyMap = [];
         foreach (var word in _allWords)
+        {
             _frequencyMap[word.Word] = word.NormalizedFrequency;
+        }
 
         _currentGuess = opener;
         _bestCandidate = opener;
     }
 
-    public void MakeGuess() =>
-            _currentGuess = _bestCandidate;
+    public string? BestCandidate => _candidates.Count > 0 ? _bestCandidate : null;
 
+    public List<string> RemainingCandidates => [.. _candidates];
+
+    /// <summary>
+    ///     Makes the next guess by selecting the best candidate based on the current scoring strategy.
+    /// </summary>
+    public void MakeGuess()
+    {
+        _currentGuess = _bestCandidate;
+    }
+
+    /// <summary>
+    ///     Processes the feedback from the previous guess and updates the list of remaining candidates.
+    /// </summary>
+    /// <param name="feedback">The feedback received for the previous guess.</param>
     public void ProcessFeedback(List<Accuracy> feedback)
     {
         var pattern = Pattern.FromFeedback(feedback);
@@ -42,26 +64,25 @@ public sealed class Engine
         UpdateBestCandidate();
     }
 
-    public string? BestCandidate => _candidates.Count > 0 ? _bestCandidate : null;
-
-    public List<string> RemainingCandidates => [.. _candidates];
-
+    /// <summary>
+    ///     Updates the best candidate word based on the current scoring strategy.
+    /// </summary>
     private void UpdateBestCandidate()
     {
-        if (_candidates.Count == 0)
-            return;
-
-        if (_candidates.Count == 1)
+        switch (_candidates.Count)
         {
-            _bestCandidate = _candidates.First();
-            return;
+            case 0:
+                return;
+            case 1:
+                _bestCandidate = _candidates.First();
+                return;
         }
 
-        var guessPool = _candidates.Count <= 20 ? _candidates : _allWords.Select(w => w.Word);
+        var guessPool = _candidates.Count <= 20 ? _candidates : _allWords.Select(w => w.Word).ToList();
 
         double maxEntropy = Math.Log2(_candidates.Count / Math.Log2(2));
 
-        var bestWord = guessPool
+        string? bestWord = guessPool
             .AsParallel()
             .Select(guess =>
             {
@@ -70,7 +91,9 @@ public sealed class Engine
                 double score = _scorer.Score(entropy, maxEntropy, frequency);
 
                 if (_candidates.Contains(guess))
+                {
                     score += 0.01; // Slightly favor candidates
+                }
 
                 return new ScoredWord(guess, score);
             })
@@ -78,8 +101,10 @@ public sealed class Engine
             .Word;
 
 #if DEBUG
-        foreach (var candidate in _candidates)
+        foreach (string candidate in _candidates)
+        {
             Console.WriteLine($"Debug: Candidate '{candidate}'");
+        }
 
         Console.WriteLine($"Debug: Best candidate is '{bestWord}' with score {guessPool.First(g => g == bestWord)}");
 #endif

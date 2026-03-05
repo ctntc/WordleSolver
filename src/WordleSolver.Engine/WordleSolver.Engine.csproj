@@ -6,6 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WordleSolver.Data\WordleSolver.Data.csproj" />
+    <ProjectReference Include="..\WordleSolver.Data\WordleSolver.Data.csproj"/>
   </ItemGroup>
 </Project>

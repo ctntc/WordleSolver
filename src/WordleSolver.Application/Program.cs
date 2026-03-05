@@ -1,23 +1,23 @@
-﻿namespace WordleSolver.Application;
-
-using System.CommandLine;
+﻿using System.CommandLine;
 
 using WordleSolver.Data;
 
-public sealed class Program
+namespace WordleSolver.Application;
+
+public static class Program
 {
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
         Option<string> opener = new("-o", "--opener")
         {
             Description = "Specify the opening word to use (default: 'crane')",
-            DefaultValueFactory = _ => "crane",
+            DefaultValueFactory = _ => "crane"
         };
 
         Option<bool> useSigmoid = new("--use-sigmoid")
         {
             Description = "Use sigmoid function for frequency scoring (default: false)",
-            DefaultValueFactory = _ => false,
+            DefaultValueFactory = _ => false
         };
 
         var rootCommand = new RootCommand("Wordle Solver Application");
@@ -30,20 +30,24 @@ public sealed class Program
         {
             Console.WriteLine("Invalid arguments:");
             foreach (var error in parseResult.Errors)
+            {
                 Console.WriteLine($"  {error.Message}");
+            }
+
             return;
         }
 
-        var useSigmoidValue = parseResult.GetValue(useSigmoid);
+        bool useSigmoidValue = parseResult.GetValue(useSigmoid);
 
         if (parseResult.GetValue(opener) != "crane")
         {
-            var openerValue = parseResult.GetValue(opener)!.ToLower();
+            string openerValue = parseResult.GetValue(opener)!.ToLower();
             if (!IsGuessValid(openerValue))
             {
                 Console.WriteLine("Opener must be 5 letters long.");
                 return;
             }
+
             Repl(openerValue, useSigmoidValue);
         }
         else
@@ -52,12 +56,31 @@ public sealed class Program
         }
     }
 
-    private static bool IsFeedbackValid(string feedback) =>
-        feedback.Length == 5 && feedback.All(c => c == 'g' || c == 'y' || c == 'b');
+    /// <summary>
+    ///     Validates the feedback string for a Wordle guess.
+    /// </summary>
+    /// <param name="feedback">The feedback string to validate.</param>
+    /// <returns>True if the feedback is valid; otherwise, false.</returns>
+    private static bool IsFeedbackValid(string feedback)
+    {
+        return feedback.Length == 5 && feedback.All(c => c == 'g' || c == 'y' || c == 'b');
+    }
 
-    private static bool IsGuessValid(string guess) =>
-        guess.Length == 5 && guess.All(char.IsLetter);
+    /// <summary>
+    ///     Validates the guess string for a Wordle game.
+    /// </summary>
+    /// <param name="guess">The guess string to validate.</param>
+    /// <returns>True if the guess is valid; otherwise, false.</returns>
+    private static bool IsGuessValid(string guess)
+    {
+        return guess.Length == 5 && guess.All(char.IsLetter);
+    }
 
+    /// <summary>
+    ///     Runs the Read-Eval-Print Loop (REPL) for the Wordle solver.
+    /// </summary>
+    /// <param name="opener">The opening word to use.</param>
+    /// <param name="useSigmoid">Whether to use the sigmoid function for frequency scoring.</param>
     private static void Repl(string opener, bool useSigmoid)
     {
         var reader = new StreamReader(Console.OpenStandardInput());
@@ -70,6 +93,12 @@ public sealed class Program
         Console.WriteLine("Thanks for playing!");
     }
 
+    /// <summary>
+    ///     Plays a single game of Wordle using the solver engine.
+    /// </summary>
+    /// <param name="reader">The StreamReader to read user input.</param>
+    /// <param name="opener">The opening word to use.</param>
+    /// <param name="useSigmoid">Whether to use the sigmoid function for frequency scoring.</param>
     private static void Play(StreamReader reader, string opener, bool useSigmoid)
     {
         Console.WriteLine("Welcome to Wordle Solver!");
@@ -83,7 +112,7 @@ public sealed class Program
 
         while (true)
         {
-            var candidate = engine.BestCandidate;
+            string? candidate = engine.BestCandidate;
 
             if (candidate is null)
             {
@@ -99,7 +128,7 @@ public sealed class Program
                 $"Suggested guess: {candidate} (remaining candidates: {remainingCount})"
             );
 
-            var feedback = reader.ReadLine()?.Trim().ToLower() ?? string.Empty;
+            string feedback = reader.ReadLine()?.Trim().ToLower() ?? string.Empty;
 
             if (new[] { "q", "quit", "exit" }.Contains(feedback))
             {
@@ -126,16 +155,23 @@ public sealed class Program
             engine.ProcessFeedback(accuracy);
 
             if (engine.BestCandidate is not null)
+            {
                 engine.MakeGuess();
+            }
 
             Console.WriteLine();
         }
     }
 
+    /// <summary>
+    ///     Prompts the user to play again.
+    /// </summary>
+    /// <param name="reader">The StreamReader to read user input.</param>
+    /// <returns>True if the user wants to play again; otherwise, false.</returns>
     private static bool PromptPlayAgain(StreamReader reader)
     {
         Console.Write("Do you want to play again? (y/n): ");
-        var response = reader.ReadLine()?.Trim().ToLower() ?? string.Empty;
+        string response = reader.ReadLine()?.Trim().ToLower() ?? string.Empty;
         return response == "y";
     }
 }
